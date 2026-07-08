@@ -9,18 +9,31 @@ import java.util.Stack;
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+  private FunctionType currentFunction = FunctionType.NONE;
 
   Resolver(Interpreter interpreter) {
     this.interpreter = interpreter;
   }
 }
 
+private enum FunctionType {
+  NONE,
+  FUNCTION
+}
+
 @Override
 public Void visitBlockStmt(Stmt.Block stmt) {
-    beginScope();
-    resolve(stmt.statements);
-    endScope();
-    return null;
+  beginScope();
+  resolve(stmt.statements);
+  endScope();
+  return null;
+}
+
+@Override
+public Void visitClassStmt(Stmt.Class stmt) {
+  declare(stmt.name);
+  define(stmt.name);
+  return null;
 }
 
 @Override
@@ -34,7 +47,7 @@ public Void visitBlockStmt(Stmt.Block stmt) {
     declare(stmt.name);
     define(stmt.name);
 
-    resolveFunction(stmt);
+    resolveFunction(stmt, FunctionType.FUNCTION);
     return null;
 }
 
@@ -54,6 +67,9 @@ public Void visitBlockStmt(Stmt.Block stmt) {
 
 @Override
   public Void visitReturnStmt(Stmt.Return stmt) {
+    if (currentFunction == FunctionType.NONE) {
+      Ytsejam.error(stmt.keyword, "Can't return from top-level code.");
+    }
     if (stmt.value != null) {
       resolve(stmt.value);
     }
@@ -143,7 +159,9 @@ private void resolve(Stmt stmt) {
     stmt.accept(this);
 }
 
-private void resolveFunction(Stmt.Function function) {
+private void resolveFunction(Stmt.Function function, FunctionType type) {
+  FunctionType enclosingFunction = currentFunction; 
+  currentFunction = type;
     beginScope();
     for (Token param : function.params) {
       declare(param);
@@ -151,6 +169,7 @@ private void resolveFunction(Stmt.Function function) {
     }
     resolve(function.body);
     endScope();
+    currentFunction = enclosingFunction;
 }
 
 private void resolve(Expr expr) {
@@ -176,6 +195,8 @@ private void declare(Token name) {
     if (scopes.isEmpty()) return;
 
     Map<String, Boolean> scope = scopes.peek();
+    if (scope.containsKey(name.lexeme)) { Ytsejam.error(name, "Already a variable with this name in this scope.");}
+
     scope.put(name.lexeme, false);
 }
 
