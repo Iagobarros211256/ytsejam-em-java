@@ -120,6 +120,23 @@ public Void visitVarStmt(Stmt.Var stmt) {
 }
 
 @Override
+  public Void visitGetExpr(Expr.Get expr) {
+    resolve(expr.object);
+    return null;
+}
+
+@Override
+public Object visitGetExpr(Expr.Get expr) {
+  Object object = evaluate(expr.object);
+    if (object instanceof LoxInstance) {
+      return ((YtsejamInstance) object).get(expr.name);
+    }
+
+    throw new RuntimeError(expr.name,
+        "Only instances have properties.");
+}
+
+@Override
   public Void visitGroupingExpr(Expr.Grouping expr) {
     resolve(expr.expression);
     return null;
@@ -134,6 +151,13 @@ public Void visitVarStmt(Stmt.Var stmt) {
   public Void visitLogicalExpr(Expr.Logical expr) {
     resolve(expr.left);
     resolve(expr.right);
+    return null;
+}
+
+@Override
+  public Void visitSetExpr(Expr.Set expr) {
+    resolve(expr.value);
+    resolve(expr.object);
     return null;
 }
 

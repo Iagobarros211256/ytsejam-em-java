@@ -5,6 +5,7 @@ import java.util.Map;
 
 class YtsejamInstance {
   private YtsejamClass klass;
+  private final Map<String, Object> fields = new HashMap<>();
 
   YtsejamInstance(YtsejamClass klass) {
     this.klass = klass;
@@ -15,3 +16,17 @@ class YtsejamInstance {
     return klass.name + " instance";
   }
 }
+
+Object get(Token name) {
+    if (fields.containsKey(name.lexeme)) {
+      return fields.get(name.lexeme);
+    }
+
+    throw new RuntimeError(name, 
+        "Undefined property '" + name.lexeme + "'.");
+}
+
+
+void set(Token name, Object value) {
+  fields.put(name.lexeme, value);
+}  
